@@ -1,4 +1,5 @@
 import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.SecureRandom;
 
 public class Main {
@@ -8,7 +9,7 @@ public class Main {
     public static final String SERVERNAME = "BulletinBoard";            // Name of the server
     public static final int TAG_LENGTH = 8;                             // Amount of bytes in the tag
     public static final int IDX_LENGTH = 4;                             // Amount of bytes in the index
-
+    public static final int KEY_LENGTH = 16;
 
     private static final SecureRandom srng = new SecureRandom();
     public static void main(String[] args) {
@@ -32,15 +33,31 @@ public class Main {
         c1.send("Niels", "test2");
         String m2 = c2.receive("Joffrey");
         System.out.println(m2);
+
+        c3.send("Joffrey", "Hey");
+
+        c1.send("Niels", "test3");
+        String m3 = c2.receive("Joffrey");
+        System.out.println(m3);
+
+        c1.send("Niels", "test4");
+        String m4 = c2.receive("Joffrey");
+        System.out.println(m4);
+
+        String m5 = c1.receive("Jonas");
+        System.out.println(m5);
     }
 
 
     // Function to add 2 contacts to each other's contact book (exchange keys and state information)
     private static void bump(Client c1, Client c2) {
-        // TODO IMPLEMENT KEY GENERATION!
         // GENERATE 2 KEYS K12 and K21;
-        SecretKey k12 = null;
-        SecretKey k21 = null;
+        byte[] k12Bytes = new byte[KEY_LENGTH];
+        byte[] k21Bytes = new byte[KEY_LENGTH];
+        srng.nextBytes(k12Bytes);
+        srng.nextBytes(k21Bytes);
+        SecretKey k12 = new SecretKeySpec(k12Bytes, "AES");
+        SecretKey k21 = new SecretKeySpec(k21Bytes, "AES");
 
         // GENERATE 2 RANDOM TAGS
         byte[] tag12 = new byte[TAG_LENGTH];

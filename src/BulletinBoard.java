@@ -23,23 +23,22 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
 
     //FUNCTIONS
     // Add a message to the bulletin board, to map at index, with key tag and value
-    public void add(int index, byte[] value, byte[] tag) throws RemoteException {
-//        System.out.println("Adding message: " + new String(value) + " at: " + index + ", with tag: " + Arrays.toString(tag));
-        board[index].put(Arrays.toString(tag), new Message(value));
+    public void add(int index, Message value, byte[] tag) throws RemoteException {
+//        System.out.println("Adding message: " + new String(value.getBytes()) + " at: " + index + ", with tag: " + Arrays.toString(tag));
+        board[index].put(Arrays.toString(tag), value);
     }
 
     // Get a message from map at index with the key being the hash of b
-    public byte[] get(int index, byte[] b) throws RemoteException {
+    public Message get(int index, byte[] b) throws RemoteException {
         // get the hash of the given tag
         byte[] tag = secureHash.digest(b);
 //        System.out.println("Getting message at: " + index + ", with tag: " + Arrays.toString(tag));
         // return null if no message with that tag is found
         // else remove the message from the board and return that
-        byte[] res = null;
+        Message res = null;
         try{
-            Message m = board[index].remove(Arrays.toString(tag));
-            res = m.getBytes();
-//            System.out.println(new String(res));
+            res = board[index].remove(Arrays.toString(tag));
+//            System.out.println(new String(res.getBytes()));
         } catch (Exception e) {e.printStackTrace();}
         return res;
     }

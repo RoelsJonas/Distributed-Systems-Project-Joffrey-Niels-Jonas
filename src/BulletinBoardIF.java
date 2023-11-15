@@ -6,7 +6,7 @@ import java.util.Map;
 
 public interface BulletinBoardIF  extends Remote {
     public static final String SECUREHASHINGALOGRITHM = "SHA-256";
-    public void add(int index, byte[] value, byte[] tag) throws RemoteException;
+    public void add(int index, Message value, byte[] tag) throws RemoteException;
 
-    public byte[] get(int index, byte[] b) throws RemoteException;
+    public Message get(int index, byte[] b) throws RemoteException;
 }

@@ -1,11 +1,17 @@
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.IvParameterSpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.security.AlgorithmParameters;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +21,7 @@ public class Client {
     private BulletinBoardIF board;
     private final SecureRandom srng;
     private MessageDigest secureHash;
+    private Cipher cipher;
 
     // CONSTRUCTORS
     public Client(String name) {
@@ -32,6 +39,10 @@ public class Client {
             Registry myRegistry = LocateRegistry.getRegistry("localhost", Main.PORT);
             board = (BulletinBoardIF) myRegistry.lookup(Main.SERVERNAME);
         } catch (Exception e) {e.printStackTrace();}
+
+        try {
+            cipher = Cipher.getInstance("AES/GCM/NOPADDING");
+        } catch(Exception e) {e.printStackTrace();}
 
     }
 
@@ -59,16 +70,24 @@ public class Client {
 
         byte[] tagDigest = secureHash.digest(contact.getTagSend());
 
-        // TODO ENCRYPT MESSAGE USING SEND KEY
-        byte[] encryptedBytes = combinedBytes;
 
-        // Try to add the encrypted message to the board if succeeded set tags to new tags and derive the next key
-        try{
-            board.add(contact.getIdxSend(), encryptedBytes, tagDigest);
+        try {
+            byte[] iv = new byte[12];
+            srng.nextBytes(iv);
+            GCMParameterSpec ivSpec = new GCMParameterSpec(128, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, contact.getKeySend(), ivSpec);
+            byte[] encryptedBytes = cipher.doFinal(combinedBytes);
+
+
+            // Try to add the encrypted message to the board if succeeded set tags to new tags and derive the next key
+            board.add(contact.getIdxSend(), new Message(encryptedBytes, iv), tagDigest);
             contact.setIdxSend(idxNew);
             contact.setTagSend(tagNew);
             contact.deriveNextKeySend();
-        } catch (Exception e) {e.printStackTrace();}
+        } catch(Exception e) {e.printStackTrace();}
+
+
+
     }
 
     // Receive a message from a contact
@@ -78,11 +97,15 @@ public class Client {
 
         // get the encrypted message from the board
         try{
-            byte[] encryptedBytes = board.get(contact.getIdxReceive(), contact.getTagReceive());
+            Message m = board.get(contact.getIdxReceive(), contact.getTagReceive());
+            byte[] encryptedBytes = m.getBytes();
             if(encryptedBytes == null) return null; // if the message is null it doesn't exist, so we return null as well
 
             // TODO DECRYPT MESSAGE
-            byte[] decryptedBytes = encryptedBytes;
+            GCMParameterSpec ivSpec = new GCMParameterSpec(128, m.getAp());
+            cipher.init(Cipher.DECRYPT_MODE, contact.getKeyReceive(),ivSpec);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+
             // if the message decryption was unsuccessful we return null as the message didn't come from the right sender
 //            if(decryptedUnsuccessful) return null;
 
