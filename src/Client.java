@@ -1,7 +1,11 @@
 import java.math.BigInteger;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,11 +13,19 @@ public class Client {
     private Map<String, Contact> contacts;
     private final String name;
     private BulletinBoardIF board;
+    private final SecureRandom srng;
+    private MessageDigest secureHash;
 
     // CONSTRUCTORS
     public Client(String name) {
         this.name = name;
         contacts = new HashMap<>();
+        srng = new SecureRandom();
+
+        // initialize the hash object
+        try {
+            secureHash = MessageDigest.getInstance(BulletinBoardIF.SECUREHASHINGALOGRITHM);
+        } catch (Exception e) {e.printStackTrace();}
 
         // Connect to bulletin board
         try {
@@ -29,14 +41,15 @@ public class Client {
         Contact contact = contacts.getOrDefault(contactName, null);
         if(contact == null) return;
 
-        // TODO GENERATE NEW TAG AND INDEX
-        int idxNew = 0;
+        int idxNew = srng.nextInt(Main.N);
         byte[] tagNew = new byte[Main.TAG_LENGTH];
+        srng.nextBytes(tagNew);
 
-        // get the message, index and tag as seperate byte arrays
+        // get the message, index and tag as separate byte arrays
         byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
-        BigInteger idx = BigInteger.valueOf(idxNew);
-        byte[] idxBytes = idx.toByteArray();
+        ByteBuffer buff = ByteBuffer.allocate(Main.IDX_LENGTH);
+        buff.putInt(idxNew);
+        byte[] idxBytes = buff.array();
 
         // combine the 3 byte arrays
         byte[] combinedBytes = new byte[messageBytes.length + idxBytes.length + tagNew.length];
@@ -44,23 +57,57 @@ public class Client {
         System.arraycopy(idxBytes, 0, combinedBytes, messageBytes.length, idxBytes.length);
         System.arraycopy(tagNew, 0, combinedBytes, messageBytes.length + idxBytes.length, tagNew.length);
 
-        // hash the tag TODO
-        byte[] tagDigest = new byte[Main.TAG_LENGTH];
+        byte[] tagDigest = secureHash.digest(contact.getTagSend());
 
-        // Try to add the message to the board if succeeded set tags to new tags and derive the next key
+        // TODO ENCRYPT MESSAGE USING SEND KEY
+        byte[] encryptedBytes = combinedBytes;
+
+        // Try to add the encrypted message to the board if succeeded set tags to new tags and derive the next key
         try{
-            board.add(contact.getIdxSend(), combinedBytes, new String(tagDigest));
+            board.add(contact.getIdxSend(), encryptedBytes, tagDigest);
             contact.setIdxSend(idxNew);
             contact.setTagSend(tagNew);
             contact.deriveNextKeySend();
         } catch (Exception e) {e.printStackTrace();}
-
-
     }
 
     // Receive a message from a contact
-    public String receive(String contact) {
-        // TODO IMPLEMENT SEE PAPER FIGURE 2
+    public String receive(String contactName) {
+        Contact contact = contacts.getOrDefault(contactName, null);
+        if(contact == null) return null; // if the contact is not found we return null
+
+        // get the encrypted message from the board
+        try{
+            byte[] encryptedBytes = board.get(contact.getIdxReceive(), contact.getTagReceive());
+            if(encryptedBytes == null) return null; // if the message is null it doesn't exist, so we return null as well
+
+            // TODO DECRYPT MESSAGE
+            byte[] decryptedBytes = encryptedBytes;
+            // if the message decryption was unsuccessful we return null as the message didn't come from the right sender
+//            if(decryptedUnsuccessful) return null;
+
+            // extract the different parts of the encrypted message
+            byte[] messageBytes = new byte[decryptedBytes.length - Main.TAG_LENGTH - Main.IDX_LENGTH];
+            System.arraycopy(decryptedBytes, 0, messageBytes, 0, messageBytes.length);
+            byte[] idxBytes = new byte[Main.IDX_LENGTH];
+            System.arraycopy(decryptedBytes, messageBytes.length, idxBytes, 0, idxBytes.length);
+            byte[] tagBytes = new byte[Main.TAG_LENGTH];
+            System.arraycopy(decryptedBytes, messageBytes.length + idxBytes.length, tagBytes, 0, tagBytes.length);
+
+            // set the new tag and index
+            contact.setTagReceive(tagBytes);
+            ByteBuffer buff = ByteBuffer.allocate(Main.IDX_LENGTH);
+            buff.put(idxBytes);
+            buff.rewind();
+            contact.setIdxReceive(buff.getInt());
+
+            // derive the next key
+            contact.deriveNextKeyReceive();
+
+            // return the message as a string
+            return new String(messageBytes);
+        } catch (Exception e) {e.printStackTrace();}
+
         return null;
     }
 

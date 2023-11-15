@@ -1,4 +1,5 @@
 import javax.crypto.SecretKey;
+import java.nio.ByteBuffer;
 
 public class Contact {
     private final String name;
