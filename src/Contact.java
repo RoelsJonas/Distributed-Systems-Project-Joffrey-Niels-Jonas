@@ -2,8 +2,8 @@ import javax.crypto.SecretKey;
 
 public class Contact {
     private final String name;
-    private String tagSend;
-    private String tagReceive;
+    private byte[] tagSend;
+    private byte[] tagReceive;
     private int idxSend;
     private int idxReceive;
 
@@ -15,7 +15,7 @@ public class Contact {
     // CONSTRUCTORS
 
 
-    public Contact(String name, String tagSend, String tagReceive, int idxSend, int idxReceive, SecretKey keySend, SecretKey keyReceive) {
+    public Contact(String name, byte[] tagSend, byte[] tagReceive, int idxSend, int idxReceive, SecretKey keySend, SecretKey keyReceive) {
         this.name = name;
         this.tagSend = tagSend;
         this.tagReceive = tagReceive;
@@ -30,19 +30,19 @@ public class Contact {
         return name;
     }
 
-    public String getTagSend() {
+    public byte[] getTagSend() {
         return tagSend;
     }
 
-    public void setTagSend(String tagSend) {
+    public void setTagSend(byte[] tagSend) {
         this.tagSend = tagSend;
     }
 
-    public String getTagReceive() {
+    public byte[] getTagReceive() {
         return tagReceive;
     }
 
-    public void setTagReceive(String tagReceive) {
+    public void setTagReceive(byte[] tagReceive) {
         this.tagReceive = tagReceive;
     }
 

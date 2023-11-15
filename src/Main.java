@@ -2,11 +2,15 @@ import javax.crypto.SecretKey;
 
 public class Main {
     // CONSTANTS
-    private static final int N = 16;
-
+    public static final int N = 256;                                    // Amount of maps in the bulletin board
+    public static final int PORT = 1099;                                // Port on which the server runs
+    public static final String SERVERNAME = "BulletinBoard";            // Name of the server
+    public static final int TAG_LENGTH = 8;                             // Amount of bytes in the tag
+    public static final int IDX_LENGTH = 4;                             // Amount of bytes in the index
 
     public static void main(String[] args) {
-        BulletinBoard bulletinBoard = new BulletinBoard(N); // Generate a new bulletin board with capacity N
+        // Start server
+        BulletinBoard.startServer();
 
         // Create some example clients
         Client c1 = new Client("Joffrey");
@@ -20,7 +24,7 @@ public class Main {
     }
 
 
-    // Function to add 2 contacts to each others contact book (exchange keys and state information)
+    // Function to add 2 contacts to each other's contact book (exchange keys and state information)
     private static void bump(Client c1, Client c2) {
         // TODO IMPLEMENT GENERATION!
         // GENERATE 2 KEYS K12 and K21;
@@ -28,8 +32,8 @@ public class Main {
         SecretKey k21 = null;
 
         // GENERATE 2 RANDOM TAGS
-        String tag12 = null;
-        String tag21 = null;
+        byte[] tag12 = null;
+        byte[] tag21 = null;
 
         // GENERATE 2 RANDOM INDEXES
         int idx12 = 0;
