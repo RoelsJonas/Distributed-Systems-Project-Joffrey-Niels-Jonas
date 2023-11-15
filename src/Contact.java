@@ -1,5 +1,12 @@
 import javax.crypto.SecretKey;
-import java.nio.ByteBuffer;
+import java.security.NoSuchAlgorithmException;
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.Mac;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 public class Contact {
     private final String name;
@@ -72,10 +79,31 @@ public class Contact {
     }
 
     public void deriveNextKeySend() {
-        // TODO KEYDERAVATION
+        try {
+            SecretKey newKeySend = deriveKey(keySend);
+            this.keySend = newKeySend;
+        }
+        catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+        }
     }
 
     public void deriveNextKeyReceive() {
-        // TODO KEYDERAVATION
+        try {
+            SecretKey newKeyReceive = deriveKey(keyReceive);
+            this.keyReceive = newKeyReceive;
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public SecretKey deriveKey(SecretKey currentKey) throws NoSuchAlgorithmException, InvalidKeyException {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        byte[] salt = null; // Zorgt voor extra randomnes bij het afleiden van de key
+        byte[] info = null; // Geeft extra context
+
+        mac.init(currentKey);
+        byte[] derivedKey = mac.doFinal();
+        return new SecretKeySpec(derivedKey, "AES");
     }
 }
