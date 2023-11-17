@@ -70,7 +70,10 @@ public class ChatUI {
                     index = getIndex(button.getText());
                     receiverClient = friends.get(index);
                     String text = senderClient.receive(receiverClient.getName());
-                    chats.get(index).append(receiverClient.getName() + ": " + text + "\n");
+                    if (text != null) {
+                        chats.get(index).append(receiverClient.getName() + ": " + text + "\n");
+                    }
+
 
                     // Opens new chat
                     messagePanel.add(chats.get(index), BorderLayout.CENTER);
