@@ -70,8 +70,9 @@ public class ChatUI {
                     index = getIndex(button.getText());
                     receiverClient = friends.get(index);
                     String text = senderClient.receive(receiverClient.getName());
-                    if (text != null) {
+                    while (text != null) {
                         chats.get(index).append(receiverClient.getName() + ": " + text + "\n");
+                        text = senderClient.receive(receiverClient.getName());
                     }
 
 
