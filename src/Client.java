@@ -16,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class Client {
-    private Map<String, Contact> contacts;
+    public Map<String, Contact> contacts;
     private final String name;
     private BulletinBoardIF board;
     private final SecureRandom srng;
@@ -98,6 +98,7 @@ public class Client {
         // get the encrypted message from the board
         try{
             Message m = board.get(contact.getIdxReceive(), contact.getTagReceive());
+
             byte[] encryptedBytes = m.getBytes();
             if(encryptedBytes == null) return null; // if the message is null it doesn't exist, so we return null as well
 
@@ -129,7 +130,8 @@ public class Client {
 
             // return the message as a string
             return new String(messageBytes);
-        } catch (Exception e) {e.printStackTrace();}
+        } catch (Exception e) {
+            e.printStackTrace();}
 
         return null;
     }

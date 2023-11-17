@@ -1,5 +1,6 @@
 import java.io.Serializable;
 import java.security.AlgorithmParameters;
+import java.util.Arrays;
 
 public class Message implements Serializable {
     private byte[] bytes;
@@ -7,6 +8,14 @@ public class Message implements Serializable {
 
     public Message(byte[] bytes) {
         this.bytes = bytes;
+    }
+
+    @Override
+    public String toString() {
+        return "Message{" +
+                "bytes=" + Arrays.toString(bytes) +
+                ", ap=" + Arrays.toString(ap) +
+                '}';
     }
 
     public Message(byte[] bytes, byte[] ap) {

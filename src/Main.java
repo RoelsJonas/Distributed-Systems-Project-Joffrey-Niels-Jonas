@@ -1,6 +1,14 @@
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Map;
+import javax.swing.*;
 
 public class Main {
     // CONSTANTS
@@ -11,43 +19,31 @@ public class Main {
     public static final int IDX_LENGTH = 4;                             // Amount of bytes in the index
     public static final int KEY_LENGTH = 16;
 
+    private static ArrayList<Client> users = new ArrayList<>();
+    private static ArrayList<JButton> buttons = new ArrayList<>();
+
     private static final SecureRandom srng = new SecureRandom();
+
     public static void main(String[] args) {
-        // Start server
         BulletinBoard.startServer();
 
-        // Create some example clients
         Client c1 = new Client("Joffrey");
         Client c2 = new Client("Niels");
         Client c3 = new Client("Jonas");
 
-        // Exchange contact information between clients
-        bump(c1, c2);
-        bump(c1, c3);
-        bump(c2, c3);
+        bumpUsers(c1);
+        users.add(c1);
 
-        c1.send("Niels", "test");
-        String m1 = c2.receive("Joffrey");
-        System.out.println(m1);
+        bumpUsers(c2);
+        users.add(c2);
 
-        c1.send("Niels", "test2");
-        String m2 = c2.receive("Joffrey");
-        System.out.println(m2);
+        bumpUsers(c3);
+        users.add(c3);
 
-        c3.send("Joffrey", "Hey");
-
-        c1.send("Niels", "test3");
-        String m3 = c2.receive("Joffrey");
-        System.out.println(m3);
-
-        c1.send("Niels", "test4");
-        String m4 = c2.receive("Joffrey");
-        System.out.println(m4);
-
-        String m5 = c1.receive("Jonas");
-        System.out.println(m5);
+        ChatUI client1UI = new ChatUI(users, c1);
+        ChatUI client2UI = new ChatUI(users, c2);
+        ChatUI client3UI = new ChatUI(users, c3);
     }
-
 
     // Function to add 2 contacts to each other's contact book (exchange keys and state information)
     private static void bump(Client c1, Client c2) {
@@ -71,5 +67,11 @@ public class Main {
 
         c1.addContact(c2.getName(), new Contact(c2.getName(), tag12, tag21, idx12, idx21, k12, k21));
         c2.addContact(c1.getName(), new Contact(c1.getName(), tag21, tag12, idx21, idx12, k21, k12));
+    }
+
+    public static void bumpUsers(Client client) {
+        for (Client otherClient: users) {
+            bump(otherClient, client);
+        }
     }
 }

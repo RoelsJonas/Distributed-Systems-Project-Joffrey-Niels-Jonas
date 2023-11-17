@@ -51,4 +51,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
             System.out.println("Server started on port: " + Main.PORT);
         } catch (Exception e) { e.printStackTrace(); }
     }
+
+//    public static void main(String[] args) {
+//        startServer();
+//    }
 }
