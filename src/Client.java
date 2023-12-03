@@ -131,7 +131,8 @@ public class Client {
             // return the message as a string
             return new String(messageBytes);
         } catch (Exception e) {
-            e.printStackTrace();}
+//            e.printStackTrace();
+        }
 
         return null;
     }
