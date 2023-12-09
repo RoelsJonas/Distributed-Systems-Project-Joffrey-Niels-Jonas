@@ -51,7 +51,6 @@ public class Client {
         try {
             cipher = Cipher.getInstance("AES/GCM/NOPADDING");
         } catch(Exception e) {e.printStackTrace();}
-
     }
 
     // FUNCTIONS
@@ -174,7 +173,7 @@ public class Client {
         }
     }
 
-    public void recoverClient() {
+    public void recoverClient() throws IOException{
         try (BufferedReader reader = new BufferedReader(new FileReader("RecoveryData/Client_" + name))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -196,7 +195,7 @@ public class Client {
                 contact.setKeyReceive(keyReceive);
             }
         } catch (IOException e) {
-            System.out.println("No recovery file found for client " + name + ".");
+            throw new IOException("No recovery file found for client " + name + ".");
         }
     }
 

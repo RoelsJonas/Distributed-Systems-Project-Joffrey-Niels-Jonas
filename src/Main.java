@@ -5,6 +5,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.IOException;
 import java.rmi.AccessException;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -30,7 +31,7 @@ public class Main {
 
     private static final SecureRandom srng = new SecureRandom();
 
-    public static void main(String[] args) throws AccessException, RemoteException, NoSuchAlgorithmException, NotBoundException {
+    public static void main(String[] args) throws NoSuchAlgorithmException, NotBoundException, IOException {
         BulletinBoard.startServer();
 
         Client c1 = new Client("Joffrey");
@@ -50,28 +51,38 @@ public class Main {
         ChatUI client2UI = new ChatUI(users, c2);
         ChatUI client3UI = new ChatUI(users, c3);
 
-        c1.storeRecoveryData();
-        c2.storeRecoveryData();
-        c3.storeRecoveryData();
-
-        // crash client c1
+        // Load the recovery data and if nothing is found store the current data (first time use)
         try {
-            Thread.sleep(10000); // Delay of 10 seconds
-            crashAndRecoverClient(c1, client1UI);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            c1.recoverClient();
+        } catch (IOException e) {
+            c1.storeRecoveryData();
+        }
+        try {
+            c2.recoverClient();
+        } catch (IOException e) {
+            c2.storeRecoveryData();
+        }
+        try {
+            c3.recoverClient();
+        } catch (IOException e) {
+            c3.storeRecoveryData();
+        }
+        try {
+            BulletinBoard.recoverBoard();
+        } catch (IOException e) {
+            BulletinBoard.storeRecoveryData();
         }
 
-        // Crash the server
+        // Crash a client after 10s
         try {
-            Thread.sleep(1000); // Delay of 10 seconds
-            crashAndRecoverServer();
+            Thread.sleep(10000); 
+            crashAndRecoverClient(c1, client1UI);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private static void crashAndRecoverClient(Client c, ChatUI oldClient1UI) {
+    private static void crashAndRecoverClient(Client c, ChatUI oldClient1UI) throws IOException {
         System.out.println("CRASHED CLIENT " + c.getName());
         users.remove(c);
         oldClient1UI.crash();
@@ -87,21 +98,6 @@ public class Main {
         ChatUI newClient1UI = new ChatUI(users, c1);
 
         c1.recoverClient();
-    }
-
-    private static void crashAndRecoverServer() throws AccessException, RemoteException, NotBoundException, NoSuchAlgorithmException {
-        System.out.println("CRASHED SERVER");
-
-       BulletinBoard.stopServer();
-
-        try {
-            Thread.sleep(2000); 
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-        BulletinBoard.startServer();
-        BulletinBoard.recoverBoard();
     }
 
 

@@ -22,15 +22,13 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
     private static MessageDigest secureHash;
 
     // CONSTRUCTORS
-    public BulletinBoard(int n) throws RemoteException {
+    public BulletinBoard(int n) throws RemoteException, NoSuchAlgorithmException {
         super();
         board = new Map[n];
         for(int i = 0; i < n; i++) board[i] = new HashMap<>();
         try {
             secureHash = MessageDigest.getInstance(BulletinBoardIF.SECUREHASHINGALOGRITHM);
         } catch (Exception e) {e.printStackTrace();}
-
-        storeRecoveryData();
     }
 
     //FUNCTIONS
@@ -68,9 +66,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
         } catch (Exception e) { e.printStackTrace(); }
     }
 
-    public void storeRecoveryData() {
+    public static void storeRecoveryData() {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("RecoveryData/Board"))) {
-            writer.write(secureHash.toString());
             for (int index = 0; index < board.length; index++) {
                 for (Map.Entry<String, Message> entry : board[index].entrySet()) {
                     String tag = entry.getKey();
@@ -81,8 +78,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
 
                     writer.write(index + ";"); 
                     writer.write(tag + ";");
-                    writer.write(bytes + ";");
-                    writer.write(ap + ";");
+                    writer.write(Arrays.toString(bytes) + ";"); 
+                    writer.write(Arrays.toString(ap) + ";");
                     writer.newLine();
                 }
             }
@@ -90,11 +87,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
             e.printStackTrace();
         }
     }
-    public static void recoverBoard() throws NoSuchAlgorithmException {
+    public static void recoverBoard() throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader("RecoveryData/Board"))) {
-            String secureHashAlgorithm = reader.readLine();
-            secureHash = MessageDigest.getInstance(secureHashAlgorithm);
-
             String line;
             while ((line = reader.readLine()) != null) {
                 String[] data = line.split(";");
@@ -107,7 +101,7 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
                 board[index].put(tag, message);
             }
         } catch (IOException e) {
-           e.printStackTrace();
+           throw new IOException("No recovery data found");
         }
     }
 
@@ -118,9 +112,5 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
             byteArray[i] = Byte.parseByte(bytes[i]);
         }
         return byteArray;
-    }
-
-    public static void stopServer() {
-        
     }
 }

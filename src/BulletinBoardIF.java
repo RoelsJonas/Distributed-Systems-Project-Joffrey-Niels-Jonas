@@ -10,6 +10,4 @@ public interface BulletinBoardIF  extends Remote {
     public void add(int index, Message value, byte[] tag) throws RemoteException;
 
     public Message get(int index, byte[] b) throws RemoteException;
-
-    public void storeRecoveryData() throws RemoteException;
 }
