@@ -1,7 +1,15 @@
 
 import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -86,7 +94,7 @@ public class Client {
             contact.deriveNextKeySend();
         } catch(Exception e) {e.printStackTrace();}
 
-
+        storeRecoveryData();
 
     }
 
@@ -98,6 +106,7 @@ public class Client {
         // get the encrypted message from the board
         try{
             Message m = board.get(contact.getIdxReceive(), contact.getTagReceive());
+            if(m == null) return null; 
 
             byte[] encryptedBytes = m.getBytes();
             if(encryptedBytes == null) return null; // if the message is null it doesn't exist, so we return null as well
@@ -106,9 +115,7 @@ public class Client {
             GCMParameterSpec ivSpec = new GCMParameterSpec(128, m.getAp());
             cipher.init(Cipher.DECRYPT_MODE, contact.getKeyReceive(),ivSpec);
             byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
-
-            // if the message decryption was unsuccessful we return null as the message didn't come from the right sender
-//            if(decryptedUnsuccessful) return null;
+            if(decryptedBytes == null) return null; 
 
             // extract the different parts of the encrypted message
             byte[] messageBytes = new byte[decryptedBytes.length - Main.TAG_LENGTH - Main.IDX_LENGTH];
@@ -131,10 +138,75 @@ public class Client {
             // return the message as a string
             return new String(messageBytes);
         } catch (Exception e) {
-//            e.printStackTrace();
+            //e.printStackTrace();
         }
 
+        storeRecoveryData();
+
         return null;
+    }
+
+   public void storeRecoveryData() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("RecoveryData/Client_" + name))) {
+            //writer.write("contactname;idxReceive;idxSend;tagSend;tagReceive");
+            for(Map.Entry<String, Contact> entry : contacts.entrySet()) {
+                String contactName = entry.getKey();
+                Contact contact = entry.getValue();
+
+                int idxSend = contact.getIdxSend();
+                int idxReceive = contact.getIdxReceive();
+                byte[] tagSend = contact.getTagSend();
+                byte[] tagReceive = contact.getTagReceive();
+                SecretKey keySend = contact.getKeySend();
+                SecretKey keyReceive = contact.getKeyReceive();
+
+                writer.write(contactName + ";");
+                writer.write(idxSend + ";");
+                writer.write(idxReceive + ";");
+                writer.write(Arrays.toString(tagSend) + ";");
+                writer.write(Arrays.toString(tagReceive) + ";");
+                writer.write(Base64.getEncoder().encodeToString(keySend.getEncoded()) + ";");
+                writer.write(Base64.getEncoder().encodeToString(keyReceive.getEncoded()) + ";");
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void recoverClient() {
+        try (BufferedReader reader = new BufferedReader(new FileReader("RecoveryData/Client_" + name))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(";");
+                String contactName = data[0];
+                int idxSend = Integer.parseInt(data[1]);
+                int idxReceive = Integer.parseInt(data[2]);
+                byte[] tagSend = parseByteArray(data[3]);
+                byte[] tagReceive = parseByteArray(data[4]);
+                SecretKey keySend = new SecretKeySpec(Base64.getDecoder().decode(data[5]), "AES");
+                SecretKey keyReceive = new SecretKeySpec(Base64.getDecoder().decode(data[6]), "AES");
+
+                Contact contact = contacts.get(contactName);
+                contact.setIdxSend(idxSend);
+                contact.setIdxReceive(idxReceive);
+                contact.setTagSend(tagSend);
+                contact.setTagReceive(tagReceive);
+                contact.setKeySend(keySend);
+                contact.setKeyReceive(keyReceive);
+            }
+        } catch (IOException e) {
+            System.out.println("No recovery file found for client " + name + ".");
+        }
+    }
+
+    private byte[] parseByteArray(String data) {
+        String[] bytes = data.substring(1, data.length() - 1).split(", ");
+        byte[] byteArray = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            byteArray[i] = Byte.parseByte(bytes[i]);
+        }
+        return byteArray;
     }
 
 

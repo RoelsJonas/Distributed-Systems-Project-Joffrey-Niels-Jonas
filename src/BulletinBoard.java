@@ -1,15 +1,27 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+
 public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardIF{
-    private  Map<String, Message>[] board;
-    private MessageDigest secureHash;
+    private static Map<String, Message>[] board;
+    private static MessageDigest secureHash;
+    private static BulletinBoard bulletinBoard; 
 
     // CONSTRUCTORS
     public BulletinBoard(int n) throws RemoteException {
@@ -19,6 +31,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
         try {
             secureHash = MessageDigest.getInstance(BulletinBoardIF.SECUREHASHINGALOGRITHM);
         } catch (Exception e) {e.printStackTrace();}
+
+        storeRecoveryData();
     }
 
     //FUNCTIONS
@@ -26,6 +40,8 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
     public void add(int index, Message value, byte[] tag) throws RemoteException {
 //        System.out.println("Adding message: " + new String(value.getBytes()) + " at: " + index + ", with tag: " + Arrays.toString(tag));
         board[index].put(Arrays.toString(tag), value);
+
+        storeRecoveryData();
     }
 
     // Get a message from map at index with the key being the hash of b
@@ -40,19 +56,81 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
             res = board[index].remove(Arrays.toString(tag));
 //            System.out.println(new String(res.getBytes()));
         } catch (Exception e) {e.printStackTrace();}
+
+        storeRecoveryData();
         return res;
     }
 
     // Start the RMI server
     public static void startServer() {
         try {
+            bulletinBoard = new BulletinBoard(Main.N);
+
             Registry registry = LocateRegistry.createRegistry(Main.PORT);
-            registry.rebind(Main.SERVERNAME, new BulletinBoard(Main.N));
+            registry.rebind(Main.SERVERNAME, bulletinBoard);
+
             System.out.println("Server started on port: " + Main.PORT);
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-//    public static void main(String[] args) {
-//        startServer();
-//    }
+    public void storeRecoveryData() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter("RecoveryData/Board"))) {
+            writer.write(secureHash.toString());
+            for (int index = 0; index < board.length; index++) {
+                for (Map.Entry<String, Message> entry : board[index].entrySet()) {
+                    String tag = entry.getKey();
+                    Message message = entry.getValue();
+
+                    byte[] bytes = message.getBytes();
+                    byte[] ap = message.getAp();
+
+                    writer.write(index + ";"); 
+                    writer.write(tag + ";");
+                    writer.write(bytes + ";");
+                    writer.write(ap + ";");
+                    writer.newLine();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public static void recoverBoard() throws NoSuchAlgorithmException {
+        try (BufferedReader reader = new BufferedReader(new FileReader("RecoveryData/Board"))) {
+            String secureHashAlgorithm = reader.readLine();
+            secureHash = MessageDigest.getInstance(secureHashAlgorithm);
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] data = line.split(";");
+                int index = Integer.parseInt(data[0]);
+                String tag = data[1];
+                byte[] bytes = parseByteArray(data[2]);
+                byte[] ap = parseByteArray(data[3]);
+
+                Message message = new Message(bytes, ap);
+                board[index].put(tag, message);
+            }
+        } catch (IOException e) {
+           e.printStackTrace();
+        }
+    }
+
+    private static byte[] parseByteArray(String data) {
+        String[] bytes = data.substring(1, data.length() - 1).split(", ");
+        byte[] byteArray = new byte[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            byteArray[i] = Byte.parseByte(bytes[i]);
+        }
+        return byteArray;
+    }
+
+    public static void stopServer() {
+        if (bulletinBoard != null) {
+            BulletinBoard.stopServer();
+            System.out.println("RMI Server stopped.");
+        }
+    }
 }

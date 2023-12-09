@@ -74,8 +74,16 @@ public class Contact {
         return keySend;
     }
 
+    public void setKeySend(SecretKey keySend) {
+        this.keySend = keySend;
+    }
+
     public SecretKey getKeyReceive() {
         return keyReceive;
+    }
+
+    public void setKeyReceive(SecretKey keyReceive) {
+        this.keyReceive = keyReceive;
     }
 
     public void deriveNextKeySend() {

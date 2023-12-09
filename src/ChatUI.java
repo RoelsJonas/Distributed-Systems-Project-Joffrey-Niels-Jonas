@@ -151,4 +151,8 @@ public class ChatUI {
         registerPanel.add(usernameSubmit);
         frame.add(registerPanel);
     }
+
+    public void crash() {
+        frame.dispose();
+    }
 }
