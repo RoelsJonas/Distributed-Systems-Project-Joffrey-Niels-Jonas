@@ -3,7 +3,6 @@ import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.rmi.NoSuchObjectException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -21,7 +20,6 @@ import javax.crypto.spec.SecretKeySpec;
 public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardIF{
     private static Map<String, Message>[] board;
     private static MessageDigest secureHash;
-    private static BulletinBoard bulletinBoard; 
 
     // CONSTRUCTORS
     public BulletinBoard(int n) throws RemoteException {
@@ -64,15 +62,10 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
     // Start the RMI server
     public static void startServer() {
         try {
-            bulletinBoard = new BulletinBoard(Main.N);
-
             Registry registry = LocateRegistry.createRegistry(Main.PORT);
-            registry.rebind(Main.SERVERNAME, bulletinBoard);
-
+            registry.rebind(Main.SERVERNAME, new BulletinBoard(Main.N));
             System.out.println("Server started on port: " + Main.PORT);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        } catch (Exception e) { e.printStackTrace(); }
     }
 
     public void storeRecoveryData() {
@@ -128,9 +121,6 @@ public class BulletinBoard extends UnicastRemoteObject implements BulletinBoardI
     }
 
     public static void stopServer() {
-        if (bulletinBoard != null) {
-            BulletinBoard.stopServer();
-            System.out.println("RMI Server stopped.");
-        }
+        
     }
 }
